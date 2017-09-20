@@ -1,4 +1,4 @@
-Build:
+Openvas Docker container
 
 Launch:
 	docker run -d -p 443:443 --name openvas <image>
