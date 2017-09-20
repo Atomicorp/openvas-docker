@@ -19,3 +19,15 @@ Attach to running
 
 	docker exec -it openvas bash
 
+
+Thanks
+
+	Jan-Oliver Wagner @Greenbone
+	
+	Michael Meyer @Greenbone
+
+	Everyone at Greenbone that made this project possible
+
+	The Arachni Project 
+
+	Openvas Docker creators used as a reference: Mike Splain, William Collani, Serge Katzmann, and Daniel Popescu
