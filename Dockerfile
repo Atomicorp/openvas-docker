@@ -1,5 +1,5 @@
 FROM centos:latest
-MAINTAINER Scott R. Shinn <scott@atomicorp.com>
+MAINTAINER Support <support@atomicorp.com>
 
 #VOLUME ["/var/lib/openvas"]
 
