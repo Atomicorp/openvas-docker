@@ -1,26 +1,35 @@
-Openvas Docker container
+**Openvas Docker container**
 
-Launch:
+This container is based on Centos 7 for FIPS-140-2 compliance. It is a self contained Openvas Scanner with web console on port 443.  
 
-	docker run -d -p 443:443 --name openvas <image>
+**Launch**
 
-Launch with a Volume:
+	docker run -d -p 443:443 --name openvas atomicorp/openvas
+
+
+	https://<IP>/
+	Default login / password: admin / admin
+
+**Launch with a Volume**
 
 	docker volume create openvas
 
-	docker run -d -p 443:443 -v openvas:/var/lib/openvas/mgr --name openvas <image>
+	docker run -d -p 443:443 -v openvas:/var/lib/openvas/mgr --name openvas atomicorp/openvas
 
-Set Admin Password
+**Set Admin Password**
 
-	docker run -d -p 443:443 -e OV_PASSWORD=somepassword --name openvas <image>
+	docker run -d -p 443:443 -e OV_PASSWORD=iliketurtles --name openvas atomicorp/openvas
+
+**Update NVT data**
+	docker run -d -p 443:443 -e OV_UPDATE=yes --name openvas atomicorp/openvas
 
 
-Attach to running
+**Attach to running**
 
 	docker exec -it openvas bash
 
 
-Thanks
+**Thanks**
 
 	Jan-Oliver Wagner @Greenbone
 	

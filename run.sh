@@ -33,19 +33,20 @@ echo "Redis ready."
 #popd
 
 
-echo "Checking for empty volume"
-[ -e "$DATAVOL/mgr/tasks.db" ] || SETUPUSER=true
-
 # Check certs
 if [ ! -f /var/lib/openvas/CA/cacert.pem ]; then
 	/usr/bin/openvas-manage-certs -a
 fi
 
-#if [ $OV_UPDATE -ge 1 ];then
-#	/usr/sbin/greenbone-nvt-sync 
-#	/usr/sbin/greenbone-certdata-sync 
-#	/usr/sbin/greenbone-scapdata-sync
-#fi
+if [ "$OV_UPDATE" == "yes" ];then
+	/usr/sbin/greenbone-nvt-sync 
+	/usr/sbin/greenbone-certdata-sync 
+	/usr/sbin/greenbone-scapdata-sync
+fi
+
+if [  ! -d /usr/share/openvas/gsa/locale ]; then
+	mkdir -p /usr/share/openvas/gsa/locale
+fi
 
 echo "Restarting services"
 /usr/sbin/openvassd 
@@ -71,9 +72,14 @@ fi
 echo "Reloading NVTs"
 openvasmd --rebuild --progress
 
-if [ -n "$SETUPUSER" ]; then
-	echo "Setting up user"
+# Check for users, and create admin
+if ! [[ $(openvasmd --get-users) ]] ; then 
 	/usr/sbin/openvasmd openvasmd --create-user=admin
+	/usr/sbin/openvasmd --user=admin --new-password=$OV_PASSWORD
+fi
+
+if [ -n "$OV_PASSWORD" ]; then
+	echo "Setting admin password"
 	/usr/sbin/openvasmd --user=admin --new-password=$OV_PASSWORD
 fi
 
