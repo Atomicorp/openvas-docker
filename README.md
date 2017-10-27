@@ -21,6 +21,7 @@ This container is based on Centos 7 for FIPS-140-2 compliance. It is a self cont
 	docker run -d -p 443:443 -e OV_PASSWORD=iliketurtles --name openvas atomicorp/openvas
 
 **Update NVT data**
+
 	docker run -d -p 443:443 -e OV_UPDATE=yes --name openvas atomicorp/openvas
 
 
