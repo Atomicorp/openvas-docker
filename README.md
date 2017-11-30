@@ -32,9 +32,9 @@ This container is based on Centos 7 for FIPS-140-2 compliance. It is a self cont
 
 **Thanks**
 
-	Jan-Oliver Wagner @Greenbone
-	
 	Michael Meyer @Greenbone
+
+	Jan-Oliver Wagner @Greenbone
 
 	Everyone at Greenbone that made this project possible
 
