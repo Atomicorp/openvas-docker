@@ -12,11 +12,11 @@ CA_FILE=/var/lib/openvas/CA/cacert.pem
 redis-server /etc/redis.conf &
 
 echo "Testing redis status..."
-X="$(redis-cli ping)"
+X="$(redis-cli -s /tmp/redis.sock ping)"
 while  [ "${X}" != "PONG" ]; do
         echo "Redis not yet ready..."
         sleep 1
-        X="$(redis-cli ping)"
+        X="$(redis-cli -s /tmp/redis.sock ping)"
 done
 echo "Redis ready."
 
