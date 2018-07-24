@@ -2,6 +2,7 @@
 
 This container is based on Centos 7 for FIPS-140-2 compliance. It is a self contained Openvas Scanner with web console on port 443.  
 
+
 **Launch**
 
 	docker run -d -p 443:443 --name openvas atomicorp/openvas
@@ -21,6 +22,8 @@ This container is based on Centos 7 for FIPS-140-2 compliance. It is a self cont
 	docker run -d -p 443:443 -e OV_PASSWORD=iliketurtles --name openvas atomicorp/openvas
 
 **Update NVT data**
+
+	Note: This process may take take some time. 
 
 	docker run -d -p 443:443 -e OV_UPDATE=yes --name openvas atomicorp/openvas
 
