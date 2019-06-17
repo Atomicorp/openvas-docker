@@ -20,19 +20,6 @@ while  [ "${X}" != "PONG" ]; do
 done
 echo "Redis ready."
 
-#echo
-#echo "Initializing persistent directory layout"
-#pushd /var/lib/openvas
-#
-#DATA_DIRS="CA cert-data mgr private/CA plugins scap-data"
-#for dir in $DATA_DIRS; do
-#	if [ ! -d $dir ]; then
-#		mkdir $dir
-#	fi
-#done
-#popd
-
-
 # Check certs
 if [ ! -f /var/lib/gvm/CA/cacert.pem ]; then
 	/usr/bin/gvm-manage-certs -a
@@ -75,13 +62,13 @@ fi
 # Check for users, and create admin
 if ! [[ $(/usr/sbin/gvmd --get-users) ]] ; then 
 	echo "Creating admin user"
-	/usr/sbin/gvmd --create-user=admin >> /tmp/output.txt 2>&1
-	/usr/sbin/gvmd --user=admin --new-password=admin >> /tmp/output.txt 2>&1
+	/usr/sbin/gvmd --create-user=admin
+	/usr/sbin/gvmd --user=admin --new-password=admin
 fi
 
 if [ -n "$OV_PASSWORD" ]; then
 	echo "Setting admin password"
-	/usr/sbin/gvmd --user=admin --new-password=$OV_PASSWORD >> /tmp/output.txt 2>&1
+	/usr/sbin/gvmd --user=admin --new-password=$OV_PASSWORD
 fi
 
 cat /tmp/output.txt
