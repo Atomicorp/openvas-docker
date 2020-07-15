@@ -4,10 +4,10 @@ DATAVOL=/var/lib/gvm/
 OV_PASSWORD=${OV_PASSWORD:-admin}
 OV_UPDATE=${OV_UPDATE:0}
 ADDRESS=127.0.0.1
+LISTEN_PORT=${LISTEN_PORT:-80}
 KEY_FILE=/var/lib/gvm/private/CA/clientkey.pem
 CERT_FILE=/var/lib/gvm/CA/clientcert.pem
 CA_FILE=/var/lib/gvm/CA/cacert.pem
-
 
 redis-server /etc/redis.conf &
 
@@ -25,9 +25,15 @@ if [ ! -f /var/lib/gvm/CA/cacert.pem ]; then
 	/usr/bin/gvm-manage-certs -a
 fi
 
-if [ "$OV_UPDATE" == "yes" ];then
+if [ "$OV_UPDATE" == "yes" ] || [ ! -e /var/lib/gvm/plugins ]; then
 	/usr/sbin/greenbone-nvt-sync 
-	/usr/sbin/greenbone-certdata-sync 
+fi
+
+if [ "$OV_UPDATE" == "yes" ] || [ ! -e /var/lib/gvm/cert-data ]; then
+	/usr/sbin/greenbone-certdata-sync
+fi
+
+if [ "$OV_UPDATE" == "yes" ] || [ ! -e /var/lib/gvm/scap-data ]; then
 	/usr/sbin/greenbone-scapdata-sync
 fi
 
@@ -38,7 +44,7 @@ fi
 echo "Restarting services"
 /usr/sbin/openvassd 
 /usr/sbin/gvmd
-/usr/sbin/gsad --listen=0.0.0.0 --port=80 --http-only --no-redirect --verbose
+/usr/sbin/gsad --listen=0.0.0.0 --port=${LISTEN_PORT} --http-only --no-redirect --verbose
 
 echo
 echo -n "Checking for scanners: "
@@ -55,10 +61,6 @@ else
 
 fi
 
-
-#echo "Reloading NVTs"
-#gvmd --rebuild --progress
-
 # Check for users, and create admin
 if ! [[ $(/usr/sbin/gvmd --get-users) ]] ; then 
 	echo "Creating admin user"
@@ -70,12 +72,6 @@ if [ -n "$OV_PASSWORD" ]; then
 	echo "Setting admin password"
 	/usr/sbin/gvmd --user=admin --new-password=$OV_PASSWORD
 fi
-
-cat /tmp/output.txt
-
-#echo "Checking setup"
-#/usr/bin/openvas-check-setup --v9
-
 
 if [ -z "$BUILD" ]; then
 	echo "Tailing logs"
