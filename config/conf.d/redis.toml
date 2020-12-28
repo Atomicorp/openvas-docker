@@ -3,6 +3,6 @@ src   = "redis.conf"
 dest  = "/etc/redis.conf"
 owner = "gvm"
 group = "gvm"
-mode  = "0640"
+mode  = "0600"
 keys = [
 ]

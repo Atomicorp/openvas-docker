@@ -12,7 +12,7 @@ RUN yum -y install 'dnf-command(config-manager)' && \
 RUN  wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/1.12/gosu-amd64" && \
     chmod a+x /usr/local/bin/gosu
 
-RUN wget -O /usr/local/bin/confd "https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64" && \
+RUN wget -O /usr/local/bin/confd "https://github.com/abtreece/confd/releases/download/v0.17.2/confd-0.17.2-linux-amd64" && \
     chmod a+x /usr/local/bin/confd && \
     mkdir -p /etc/confd/{conf.d,templates}
 
