@@ -3,6 +3,6 @@ src   = "openvas.conf"
 dest  = "/etc/openvas/openvas.conf"
 owner = "gvm"
 group = "gvm"
-mode  = "0600"
+mode  = "0644"
 keys = [
 ]
