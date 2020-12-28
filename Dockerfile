@@ -53,18 +53,26 @@ RUN mkdir /docker-entrypoint-initdb.d
 COPY postgres_entrypoint.sh /postgres_entrypoint.sh
 COPY config/init-gvm-db.sh /docker-entrypoint-initdb.d/init-gvm-db.sh
 
+# pull public data from feeds
+RUN gosu gvm usr/bin/gvm-manage-certs -a && \
+    gosu gvm greenbone-feed-sync --type CERT && \
+	gosu gvm greenbone-feed-sync --type SCAP && \
+	gosu gvm greenbone-feed-sync --type GVMD_DATA && \
+	gosu gvm /usr/bin/greenbone-nvt-sync 
+
 # add the container startup script
 COPY run.sh /run.sh
 
 # run the startup script in build mode.
-RUN BUILD=true OV_UPDATE=yes /run.sh
+RUN BUILD=true /run.sh
 
 # move lib/gvm to a backup dir, it will be restored at startup.  
 # this allows attaching a volume to lib/gvm, and if it is empty 
 # we will copy in the data backed into the image.
 RUN mv /var/lib/gvm /var/lib/gvm.backup &&\
     mkdir /var/lib/gvm && \
-    chown gvm:gvm /var/lib/gvm
+    chown gvm:gvm /var/lib/gvm && \
+    chmod 755 /var/lib/gvm
 
 CMD /run.sh
 EXPOSE 80
