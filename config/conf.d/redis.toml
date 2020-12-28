@@ -1,0 +1,8 @@
+[template]
+src   = "redis.conf"
+dest  = "/etc/redis.conf"
+owner = "root"
+group = "gvm"
+mode  = "0640"
+keys = [
+]

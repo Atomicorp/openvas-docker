@@ -1,32 +1,30 @@
 #!/bin/sh
 
-
-# set up GSAD config
-cat << EOF > /etc/sysconfig/gsad
-OPTIONS=""
-#
-# The address the Greenbone Security Assistant will listen on.
-#
-GSA_ADDRESS=0.0.0.0
-#
-# The port the Greenbone Security Assistant will listen on.
-#
-GSA_PORT=443
-EOF
-
-# Proxy optimization
-sed -i "s/^mirrorlist/#mirrorlist/g" /etc/yum.repos.d/CentOS-Base.repo 
-sed -i "s/^#base/base/g" /etc/yum.repos.d/CentOS-Base.repo 
-
-yum -y install wget
-cd /root; NON_INT=1 wget -q -O - https://updates.atomicorp.com/installers/atomic |sh
+yum -y install 'dnf-command(config-manager)'
+yum config-manager --set-enabled powertools
+yum -y install wget epel-release
+cd /root;
+export NON_INT=1
+wget -q -O - https://updates.atomicorp.com/installers/atomic |sh
 yum clean all
 yum -y update
-yum -y install bzip2 useradd net-tools openssh
+yum -y install  bzip2 \
+                net-tools \
+                openssh \
+                glibc-langpack-en \
+                gnutls-utils \
+                python3 \
+                postgresql-server \
+                postgresql-contrib \
+                greenbone-security-assistant \
+                OSPd-openvas
 
-yum -y install openvas OSPd-nmap OSPd
+wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/1.12/gosu-amd64"
+chmod a+x /usr/local/bin/gosu
 
-BUILD=true /run.sh
+wget -O /usr/local/bin/confd "https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64"
+chmod a+x /usr/local/bin/confd
+mkdir -p /etc/confd/{conf.d,templates}
 
 rm -rf /var/cache/yum/*
 

@@ -1,0 +1,8 @@
+[template]
+src   = "greenbone-nvt-sync.conf"
+dest  = "/etc/openvas/greenbone-nvt-sync.conf"
+owner = "gvm"
+group = "gvm"
+mode  = "0600"
+keys = [
+]

@@ -1,76 +1,82 @@
 #!/bin/bash
+set -x 
 
-DATAVOL=/var/lib/gvm/
 OV_PASSWORD=${OV_PASSWORD:-admin}
-OV_UPDATE=${OV_UPDATE:0}
-ADDRESS=127.0.0.1
+OV_UPDATE=${OV_UPDATE:-no}
 LISTEN_PORT=${LISTEN_PORT:-80}
-KEY_FILE=/var/lib/gvm/private/CA/clientkey.pem
-CERT_FILE=/var/lib/gvm/CA/clientcert.pem
-CA_FILE=/var/lib/gvm/CA/cacert.pem
+KEY_FILE=${DATAVOL}/private/CA/clientkey.pem
+CERT_FILE=${DATAVOL}/CA/clientcert.pem
+CA_FILE=${DATAVOL}/CA/cacert.pem
+export DATAVOL=${DATAVOL:-/var/lib/gvm/}
+export POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-openvas}
+export PGDATA=${PGDATA:-${DATAVOL}/pgsql/data}
 
-redis-server /etc/redis.conf &
+# generate config files from templates.
+confd -onetime -backend env
+
+# if we are not in build mode, check if we need to restore lib/gvm
+if [ -z "$BUILD" ]; then
+	if [ ! -e ${DATAVOL}/plugins ] && [ -e /var/lib/gvm.backup ]; then
+		chown gvm:gvm ${DATAVOL}
+		mv /var/lib/gvm.backup/* ${DATAVOL}/
+	fi
+fi
+
+# start redis
+gosu gvm redis-server /etc/redis.conf &
 
 echo "Testing redis status..."
-X="$(redis-cli -s /tmp/redis.sock ping)"
+X="$(gosu gvm redis-cli -s /var/run/gvm/redis.sock ping)"
 while  [ "${X}" != "PONG" ]; do
         echo "Redis not yet ready..."
         sleep 1
-        X="$(redis-cli -s /tmp/redis.sock ping)"
+        X="$(redis-cli -s /var/run/gvm/redis.sock ping)"
 done
 echo "Redis ready."
 
+# start postgres
+echo "starting Postgres"
+gosu postgres /postgres_entrypoint.sh postgres &
+# wait for postgres to start
+sleep 10
+
 # Check certs
-if [ ! -f /var/lib/gvm/CA/cacert.pem ]; then
+if [ ! -f ${DATAVOL}/CA/cacert.pem ]; then
 	/usr/bin/gvm-manage-certs -a
 fi
 
-if [ "$OV_UPDATE" == "yes" ] || [ ! -e /var/lib/gvm/plugins ]; then
-	/usr/sbin/greenbone-nvt-sync 
-fi
-
-if [ "$OV_UPDATE" == "yes" ] || [ ! -e /var/lib/gvm/cert-data ]; then
-	/usr/sbin/greenbone-certdata-sync
-fi
-
-if [ "$OV_UPDATE" == "yes" ] || [ ! -e /var/lib/gvm/scap-data ]; then
-	/usr/sbin/greenbone-scapdata-sync
+if [ "$OV_UPDATE" == "yes" ] ; then
+	gosu gvm greenbone-feed-sync --type CERT
+	gosu gvm greenbone-feed-sync --type SCAP
+	gosu gvm greenbone-feed-sync --type GVMD_DATA
+	gosu gvm /usr/bin/greenbone-nvt-sync 
 fi
 
 if [  ! -d /usr/share/gvm/gsa/locale ]; then
 	mkdir -p /usr/share/gvm/gsa/locale
 fi
 
-echo "Restarting services"
-/usr/sbin/openvassd 
-/usr/sbin/gvmd
-/usr/sbin/gsad --listen=0.0.0.0 --port=${LISTEN_PORT} --http-only --no-redirect --verbose
+echo "Starting gvmd"
+gosu gvm /usr/sbin/gvmd
 
-echo
-echo -n "Checking for scanners: "
-SCANNER=$(/usr/sbin/gvmd --get-scanners)
-echo "Done"
+echo "Starting gsad"
+/usr/sbin/gsad --listen=0.0.0.0 --port=${LISTEN_PORT} --http-only --no-redirect --verbose --munix-socket=/var/run/gvm/gvmd.sock
 
-if ! echo $SCANNER | grep -q nmap ; then
-        echo "Adding nmap scanner"
-        /usr/bin/ospd-nmap --bind-address $ADDRESS --port 40001 --key-file $KEY_FILE --cert-file $CERT_FILE --ca-file $CA_FILE &
-        /usr/sbin/gvmd  --create-scanner=ospd-nmap --scanner-host=localhost --scanner-port=40001 --scanner-type=OSP --scanner-ca-pub=/var/lib/gvm/CA/cacert.pem --scanner-key-pub=/var/lib/gvm/CA/clientcert.pem --scanner-key-priv=/var/lib/gvm/private/CA/clientkey.pem
-        echo
-else
-	/usr/bin/ospd-nmap --bind-address $ADDRESS --port 40001 --key-file $KEY_FILE --cert-file $CERT_FILE --ca-file $CA_FILE &
-
-fi
+echo "Starting ospd-openvas"
+export PYTHONPATH=/opt/atomicorp/lib/python3.6/site-packages
+gosu gvm /opt/atomicorp/bin/ospd-openvas --pid-file /var/run/ospd/ospd-openvas.pid --unix-socket=/var/run/ospd/ospd.sock --log-file /var/log/gvm/ospd-scanner.log --lock-file-dir /var/run/gvm/
 
 # Check for users, and create admin
-if ! [[ $(/usr/sbin/gvmd --get-users) ]] ; then 
+while ! [[ $(gosu gvm /usr/sbin/gvmd --get-users) ]] ; do 
 	echo "Creating admin user"
-	/usr/sbin/gvmd --create-user=admin
-	/usr/sbin/gvmd --user=admin --new-password=admin
-fi
+	gosu gvm /usr/sbin/gvmd --create-user=admin
+	gosu gvm /usr/sbin/gvmd --user=admin --new-password=admin
+	sleep 1
+done
 
 if [ -n "$OV_PASSWORD" ]; then
 	echo "Setting admin password"
-	/usr/sbin/gvmd --user=admin --new-password=$OV_PASSWORD
+	gosu gvm /usr/sbin/gvmd --user=admin --new-password=$OV_PASSWORD
 fi
 
 if [ -z "$BUILD" ]; then
