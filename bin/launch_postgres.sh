@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+# Based on entrypoint script from official postgres docker image.
+# https://github.com/docker-library/postgres/blob/03e769531fff4c97cb755e4a608b24935ceeee27/10/docker-entrypoint.sh
+
 set -Eeo pipefail
 set -x
-# TODO swap to -Eeuo pipefail above (after handling all potentially-unset variables)
 
 # usage: file_env VAR [DEFAULT]
 #    ie: file_env 'XYZ_DB_PASSWORD' 'example'

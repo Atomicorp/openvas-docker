@@ -5,7 +5,7 @@ ENV LANG=en_US.UTF-8
 # configure yum
 RUN yum -y install 'dnf-command(config-manager)' && \
     yum config-manager --set-enabled powertools && \
-    yum -y install wget epel-release && \
+    yum -y install glibc-langpack-en wget epel-release && \
     export NON_INT=1 && wget -q -O - https://updates.atomicorp.com/installers/atomic |sh
 
 # add helpers
@@ -20,10 +20,10 @@ RUN wget -O /usr/local/bin/confd "https://github.com/abtreece/confd/releases/dow
 RUN yum clean all && yum -y update
 
 # install packages
-RUN yum -y install  bzip2 \
+RUN yum -y install bzip2 \
+                supervisor \
                 net-tools \
                 openssh \
-                glibc-langpack-en \
                 gnutls-utils \
                 python3 \
                 postgresql-server \
@@ -38,41 +38,29 @@ RUN rm -rf /var/cache/yum/*
 COPY config/templates/* /etc/confd/templates/
 COPY config/conf.d/* /etc/confd/conf.d/
 
-# configure dirs for redis
-RUN mkdir -p /var/lib/gvm/redis && \
-    chown gvm:gvm /var/lib/gvm/redis && \
-    mkdir -p /var/log/redis && \
-    chown -R gvm:gvm /var/log/redis
-
-# configure dirs for postgres
-RUN mkdir -p /var/lib/gvm/pgsql && \
-    chown postgres:postgres /var/lib/gvm/pgsql
-
-# add postgres startup scripts
-RUN mkdir /docker-entrypoint-initdb.d
-COPY postgres_entrypoint.sh /postgres_entrypoint.sh
-COPY config/init-gvm-db.sh /docker-entrypoint-initdb.d/init-gvm-db.sh
-
-# pull public data from feeds
-RUN gosu gvm usr/bin/gvm-manage-certs -a && \
-    gosu gvm greenbone-feed-sync --type CERT && \
-	gosu gvm greenbone-feed-sync --type SCAP && \
-	gosu gvm greenbone-feed-sync --type GVMD_DATA && \
-	gosu gvm /usr/bin/greenbone-nvt-sync 
-
-# add the container startup script
-COPY run.sh /run.sh
-
-# run the startup script in build mode.
-RUN BUILD=true /run.sh
-
-# move lib/gvm to a backup dir, it will be restored at startup.  
-# this allows attaching a volume to lib/gvm, and if it is empty 
-# we will copy in the data backed into the image.
-RUN mv /var/lib/gvm /var/lib/gvm.backup &&\
-    mkdir /var/lib/gvm && \
+#configure dirs for gvm
+RUN mkdir -p /var/lib/gvm && \
     chown gvm:gvm /var/lib/gvm && \
     chmod 755 /var/lib/gvm
 
-CMD /run.sh
+# add scripts for starting services.
+COPY bin/* /usr/local/bin/
+
+# add supervisord configs
+COPY config/supervisor/* /etc/supervisord.d/
+
+# add db init script
+RUN mkdir /docker-entrypoint-initdb.d
+COPY config/init-gvm-db.sh /docker-entrypoint-initdb.d/init-gvm-db.sh
+
+CMD ["supervisord", "-n"]
 EXPOSE 80
+ENV DATAVOL=/var/lib/gvm
+ENV OV_PASSWORD=admin
+ENV OV_UPDATE=no
+ENV LISTEN_PORT=80
+ENV POSTGRES_PASSWORD=openvas
+ENV KEY_FILE=${DATAVOL}/private/CA/clientkey.pem
+ENV CERT_FILE=${DATAVOL}/CA/clientcert.pem
+ENV CA_FILE=${DATAVOL}/CA/cacert.pem
+ENV PGDATA=${DATAVOL}/pgsql/data
